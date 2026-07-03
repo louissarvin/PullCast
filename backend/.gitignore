@@ -1,0 +1,18 @@
+node_modules
+# Keep environment variables out of version control
+.env
+.env.production
+
+# Prisma generated client
+prisma/generated
+
+# Transient render output (share-card-test-*.png samples live in docs/img/)
+tmp/
+
+# OS detritus
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+*.swp
