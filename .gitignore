@@ -1,0 +1,87 @@
+# Dependencies
+node_modules/
+bun.lockb
+
+# Environment / secrets — NEVER commit (but .env.example IS committed)
+.env
+.env.local
+.env.production
+.env.development
+.env.*.local
+.env.bak
+.env.bak2
+.env.backup
+
+# Build output
+.output/
+.tanstack/
+.vinxi/
+.wrangler/
+.nitro/
+dist/
+dist-ssr/
+build/
+
+# Prisma generated client
+**/prisma/generated/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing / playwright
+.playwright-mcp/
+coverage/
+*.tmp
+tmp/
+temp/
+count.txt
+todos.json
+
+# AI assistant workspaces (not project code)
+.claude/
+memory/
+skills/
+
+# Ephemeral session artifacts
+DEMO_SCRIPT.md
+DESIGN.md
+ECOSYSTEM.md
+SUBMISSION.md
+FRONTEND_STRUCTURE_GUIDE.md
+pitchdeck.md
+
+# Research notes (pre-implementation planning)
+01_*.md
+02_*.md
+03_*.md
+04_*.md
+05_*.md
+06_*.md
+07_*.md
+08_*.md
+09_*.md
+10_*.md
+11_*.md
+12_*.md
+13_*.md
+14_*.md
+15_*.md
+16_*.md
+17_*.md
+18_*.md
+19_*.md
+
+# Per-package CLAUDE.md (agent instructions, not code)
+CLAUDE.md
+**/CLAUDE.md
+
+# Marketplace snapshot dump
+marketplace.json
+
+# Local Docker overrides
+docker-compose.override.yml
