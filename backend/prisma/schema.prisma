@@ -1,0 +1,276 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+//
+// User must run: bun run db:push after schema changes
+//
+// All new tables: id (cuid), createdAt, updatedAt, deletedAt (soft delete),
+// explicit @@index on every lookup column, FKs with onDelete: SetNull or Restrict
+// (never Cascade on user data). All adds are additive against the existing
+// User + ErrorLog blocks; nothing existing is renamed or dropped.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String   @id @default(cuid())
+  walletAddress String   @unique
+  nonce        String?   // For signature verification
+  lastSignIn   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model ErrorLog {
+  id         String   @id @default(cuid())
+  errorCode  String
+  message    String
+  statusCode Int
+  stack      String?  @db.Text
+  context    String?  @db.Text
+  userId     String?
+  method     String?
+  path       String?
+  userAgent  String?  @db.Text
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([errorCode])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// PullCast domain models. See /memory/backend-architecture.md Section 3.
+// ---------------------------------------------------------------------------
+
+model Pull {
+  id                    String    @id @default(cuid())
+  packSlug              String                          // eden-pack, omega, renacrypt-pack
+  collectibleTokenId    String                          // BSC tokenId as decimal string (uint256 safe)
+  buyerAddress          String                          // 0x... lower-cased
+  tier                  String?                         // gacha tier label from API
+  fmvUsdCents           Int?                            // integer cents at pull time
+  packPriceUsdCents     Int                             // packPrice at pull time
+  netGainUsdCents       Int?                            // fmvUsdCents minus packPriceUsdCents
+  pulledAtTimestamp     DateTime                        // pulledAtTimestamp from /v0/packs/{slug}
+  txHash                String?                         // populated by ethers fallback when API stale
+  blockNumber           Int?
+  cardName              String?
+  setName               String?
+  cardNumber            String?
+  gradingCompany        String?                         // PSA / BGS / CGC / SGC
+  grade                 String?                         // "10 Gem Mint" etc.
+  serial                String?                         // PSA112300670, the cert bridge
+  frontImageUrl         String?
+  backImageUrl          String?
+  rawAttributesJson     String?   @db.Text              // JSON of attributes[] from main API
+  shareCardPostedAt     DateTime?                       // when Discord posting finished
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  deletedAt             DateTime?
+
+  shareCards            ShareCard[]
+  leaderboardSnapshots  LeaderboardSnapshot[]
+
+  // B2: dedupe key is (packSlug, collectibleTokenId). Timestamp drops out of
+  // the unique because API vs ethers-fallback can disagree on sub-ms precision,
+  // and Prisma.upsert is not atomic at the SQL level (a wider arbiter increases
+  // race surface). One token can only be pulled from a pack once.
+  @@unique([packSlug, collectibleTokenId], map: "uq_pull_pack_token")
+  @@index([packSlug])
+  // B3: composite (buyerAddress, pulledAtTimestamp DESC) serves the wallet
+  // gallery hot path. Subsumes the single-column [buyerAddress] index.
+  @@index([buyerAddress, pulledAtTimestamp(sort: Desc)])
+  // B3: composite (pulledAtTimestamp DESC) serves the global JSON feed.
+  // Subsumes the single-column [pulledAtTimestamp] index.
+  @@index([pulledAtTimestamp(sort: Desc)])
+  @@index([serial])
+  @@index([deletedAt])
+}
+
+model Subscription {
+  id               String    @id @default(cuid())
+  discordGuildId   String
+  discordChannelId String
+  walletAddress    String?                              // wallet-scoped subscription (optional)
+  packSlug         String?                              // pack-scoped subscription (optional)
+  label            String?
+  // D8: Subscription channel type. Defaults to PULLCAST (the existing auto-share
+  // stream). CARD_OF_THE_DAY subscribes the channel to the daily featured-card
+  // digest posted by the CardOfTheDay worker. BIG_TRADE_ALERT subscribes to the
+  // 5-min big-trade alert stream posted by the BigTradeAlert worker.
+  // Represented as a string (not a Prisma enum) so an unknown future type does
+  // not require a schema round-trip.
+  // Known values: PULLCAST | CARD_OF_THE_DAY | BIG_TRADE_ALERT.
+  type             String    @default("PULLCAST")
+  // D8: freeform per-subscription config, e.g. { "threshold_usd_cents": 500000 }
+  // for BIG_TRADE_ALERT overrides. Nullable so PULLCAST/CARD_OF_THE_DAY rows do
+  // not need to backfill anything. Stored as a JSON string (@db.Text) rather
+  // than a Prisma Json type so PgLite/mock backends work identically.
+  metadata         String?   @db.Text
+  createdByUserId  String?                              // Discord userId who ran the slash command
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+
+  // B1: Postgres treats NULL as distinct in unique constraints by default
+  // (https://www.postgresql.org/docs/current/indexes-unique.html). Subscription
+  // always has exactly one of walletAddress / packSlug NULL by design, so a
+  // declarative @@unique here would never fire. Prisma 7.2 also does not yet
+  // expose `nullsNotDistinct`. The two partial unique indexes that enforce
+  // scope correctness live in prisma/migrations/manual/001_partial_indexes.sql.
+  @@index([discordGuildId])
+  @@index([discordChannelId])
+  @@index([walletAddress])
+  @@index([packSlug])
+  @@index([deletedAt])
+}
+
+model Cursor {
+  // Per-pack high-water-mark for the indexer. One row per packSlug.
+  id                   String    @id @default(cuid())
+  packSlug             String    @unique
+  lastSeenTokenId      String?
+  lastSeenTimestamp    DateTime?
+  lastSuccessfulPollAt DateTime?
+  consecutiveFailures  Int       @default(0)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  deletedAt            DateTime?
+
+  // R2: removed redundant @@index([packSlug]) - the @unique on packSlug above
+  // already creates an index. Postgres auto-creates a btree index for every
+  // unique constraint (https://www.postgresql.org/docs/current/indexes-unique.html).
+  @@index([deletedAt])
+}
+
+model CertCache {
+  // Cache of /v1/graded/{cert} responses to stay under the 60/min IP rate limit.
+  id           String    @id @default(cuid())
+  cert         String    @unique                        // PSA73628064 etc.
+  found        Boolean
+  reason       String?                                  // when found=false: not_ingested, etc.
+  payloadJson  String    @db.Text                       // raw JSON of GradedLookup
+  fmvUsdCents  Int?
+  confidence   String?                                  // high | medium | low
+  lastSaleAt   DateTime?
+  fetchedAt    DateTime  @default(now())
+  expiresAt    DateTime                                 // fetchedAt + TTL
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  // R2: removed redundant @@index([cert]) - covered by @unique.
+  @@index([expiresAt])
+  @@index([deletedAt])
+}
+
+model OptOut {
+  // Wallet owners can DM the bot to globally suppress posts about their pulls.
+  id             String    @id @default(cuid())
+  walletAddress  String    @unique
+  discordUserId  String?
+  reason         String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  // R2: removed redundant @@index([walletAddress]) - covered by @unique.
+  @@index([deletedAt])
+}
+
+model ShareCard {
+  // Rendered PNG bytes are cached on disk; this row tracks renders for the OG endpoint + audit.
+  id           String    @id @default(cuid())
+  pullId       String
+  pull         Pull      @relation(fields: [pullId], references: [id], onDelete: Restrict)
+  styleVariant String                                   // psa | bgs | cgc | generic
+  pngPath      String                                   // local or remote URL
+  widthPx      Int       @default(1200)
+  heightPx     Int       @default(630)
+  byteSize     Int?
+  renderedAt   DateTime  @default(now())
+  createdAt    DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  // R5: composite serves findFirst({ where: { pullId, styleVariant }, orderBy: { renderedAt: desc } })
+  // as an index-only scan. Subsumes leading-column lookups on pullId alone.
+  // styleVariant alone is rarely queried; single-column index dropped.
+  @@index([pullId, styleVariant, renderedAt(sort: Desc)])
+  @@index([deletedAt])
+}
+
+model LeaderboardSnapshot {
+  // Hourly snapshot of top pulls by netGainUsdCents in trailing 24h.
+  id              String    @id @default(cuid())
+  windowStartAt   DateTime
+  windowEndAt     DateTime
+  rank            Int                                   // 1..5
+  pullId          String
+  pull            Pull      @relation(fields: [pullId], references: [id], onDelete: Restrict)
+  netGainUsdCents Int
+  fmvUsdCents     Int?
+  packSlug        String
+  computedAt      DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  @@unique([windowEndAt, rank])
+  @@index([windowEndAt])
+  @@index([pullId])
+  @@index([packSlug])
+  @@index([deletedAt])
+}
+
+model AnthropicCorpus {
+  // Grounding corpus for /explain + /listing. Mirrors src/lib/anthropic/
+  // corpus-seeds.ts into the database so retrieval can be moved off the
+  // in-process array without a code deploy (e.g. adding new Renaiss posts via
+  // an admin route). Dedupe key: (sourceUrl, chunkIndex).
+  //
+  // Additive-only. User must run `bun run db:push` themselves after schema
+  // changes (see backend/CLAUDE.md).
+  id              String    @id @default(cuid())
+  seedId          String    @unique                     // stable slug from corpus-seeds.ts
+  title           String
+  sourceUrl       String                                // canonical public URL
+  publishedAt     DateTime?                             // best-effort publish date
+  category        String                                // 'medium' | 'industry' | 'openapi'
+  chunkIndex      Int                                   // 0-based within the source doc
+  excerpt         String    @db.Text                    // verbatim-preferred passage
+  tokensEstimated Int                                   // rough token count for observability
+  tagsCsv         String    @db.Text                    // comma-separated tags (parsed at read)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  // Postgres treats NULL as distinct in unique constraints; sourceUrl and
+  // chunkIndex are both NOT NULL here so this composite unique is safe as-is.
+  @@unique([sourceUrl, chunkIndex], map: "uq_anthropic_corpus_source_chunk")
+  @@index([category])
+  @@index([publishedAt])
+  @@index([deletedAt])
+}
+
+model RateLimitBucket {
+  // Token-bucket state for Discord per-channel posting and HTTP per-IP rate limits.
+  id              String    @id @default(cuid())
+  bucketKey       String    @unique                    // discord:channel:<id> or http:ip:<ip> or index-api:daily:<yyyymmdd>
+  tokensRemaining Int
+  capacity        Int
+  refillPerMinute Int
+  lastRefillAt    DateTime
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  // R2: removed redundant @@index([bucketKey]) - covered by @unique.
+  @@index([deletedAt])
+}
