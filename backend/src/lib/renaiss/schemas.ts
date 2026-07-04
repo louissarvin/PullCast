@@ -636,3 +636,4 @@ export type RenaissUserFavoritedCollectible = z.infer<
   typeof renaissUserFavoritedCollectibleSchema
 >;
 export type RenaissUserSbt = z.infer<typeof renaissUserSbtSchema>;
+
