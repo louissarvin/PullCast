@@ -1,0 +1,283 @@
+@import 'tailwindcss';
+
+/* ─── Open Runde self-hosted ─────────────────────────────────────────────── */
+
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/fonts/open-runde/OpenRunde-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/fonts/open-runde/OpenRunde-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/fonts/open-runde/OpenRunde-Semibold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/fonts/open-runde/OpenRunde-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ─── Design tokens ──────────────────────────────────────────────────────── */
+
+@theme {
+  /* Colors — light mode (ships v1) */
+  --color-bg: #faf8f5;
+  --color-bg-alt: #f5f1ea;
+  --color-surface: #ffffff;
+  --color-ink: #171412;
+  --color-ink-muted: #5c554c;
+  --color-ink-subtle: #8a8074;
+  --color-border: rgba(35, 31, 24, 0.08);
+  --color-border-strong: rgba(35, 31, 24, 0.14);
+  --color-accent: #613dff;
+  --color-accent-soft: #e9e1ff;
+  --color-accent-ink: #ffffff;
+  --color-success: #00c649;
+  --color-success-soft: #ddf7e4;
+  --color-warn: #e48a2e;
+  --color-warn-soft: #fce9ce;
+  --color-danger: #d64545;
+
+  /* Border radius */
+  --radius-xs: 6px;
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+  --radius-xl: 40px;
+  --radius-pill: 999px;
+
+  /* Typography */
+  --font-sans:
+    'Open Runde', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
+  --font-display:
+    'Open Runde', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
+  --font-body:
+    'Open Runde', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
+
+  /* Motion easings */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+
+  /* Spacing anchors */
+  --spacing-card: 24px;
+  --spacing-card-lg: 32px;
+}
+
+/* ─── Grade colors — share-card scope only ───────────────────────────────── */
+/*
+  These tokens are intentionally scoped inside .share-card-* selectors to
+  prevent leaking into general UI chrome. Do not use --color-grade-* outside
+  these selectors.
+*/
+
+.share-card-psa {
+  --color-grade-primary: #d91e24;
+  --color-grade-accent: #f2c94c;
+  --color-grade-ink: #ffffff;
+}
+
+.share-card-bgs {
+  --color-grade-primary: #000000;
+  --color-grade-secondary: #1a1a1a;
+  --color-grade-accent: #c0a15b;
+  --color-grade-ink: #c0a15b;
+}
+
+.share-card-cgc {
+  --color-grade-primary: #1d6bb4;
+  --color-grade-ink: #ffffff;
+}
+
+.share-card-sgc {
+  --color-grade-primary: #f2c94c;
+  --color-grade-ink: #171412;
+}
+
+/* ─── Base ───────────────────────────────────────────────────────────────── */
+
+@layer base {
+  html {
+    font-optical-sizing: auto;
+    font-feature-settings: 'ss01', 'cv11';
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Remove scroll-behavior: smooth — Lenis owns smooth scroll */
+  html {
+    scroll-behavior: auto;
+  }
+
+  /* Selection */
+  ::selection {
+    background-color: var(--color-accent-soft);
+    color: var(--color-accent);
+  }
+
+  /* Focus ring — accent outline, no box-shadow */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border-strong);
+    border-radius: var(--radius-pill);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ink-subtle);
+  }
+}
+
+/* ─── Typography utilities ───────────────────────────────────────────────── */
+
+@layer utilities {
+  .text-display-xl {
+    font-size: clamp(4rem, 10vw, 10rem);
+    font-weight: 500;
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+  }
+
+  .text-display-l {
+    font-size: clamp(3.5rem, 7vw, 6rem);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .text-h1 {
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .text-h2 {
+    font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+
+  .text-h3 {
+    font-size: clamp(1.375rem, 2vw, 1.75rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+  }
+
+  .text-body-l {
+    font-size: 1.125rem;
+    font-weight: 400;
+    line-height: 1.6;
+  }
+
+  .text-body {
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.6;
+  }
+
+  .text-body-s {
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+
+  .text-caption {
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+
+  .text-num {
+    font-size: 0.875rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.4;
+  }
+
+  .text-mono {
+    font-size: 0.875rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums slashed-zero;
+    line-height: 1.4;
+  }
+
+  /* Skeleton pulse animation */
+  .skeleton {
+    background-color: var(--color-bg-alt);
+    border-radius: var(--radius-sm);
+  }
+
+  @keyframes skeleton-pulse {
+    0%,
+    100% {
+      background-color: var(--color-bg-alt);
+    }
+    50% {
+      background-color: #efe9df;
+    }
+  }
+
+  .skeleton-animate {
+    animation: skeleton-pulse 1.2s ease-in-out infinite alternate;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton-animate {
+      animation: none;
+    }
+  }
+
+  /* Reveal-on-scroll target class for GSAP ScrollTrigger */
+  .reveal-on-scroll {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal-on-scroll {
+      opacity: 1;
+    }
+  }
+}
