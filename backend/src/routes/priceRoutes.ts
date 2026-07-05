@@ -492,3 +492,4 @@ export const priceRoutes: FastifyPluginCallback = (
 
   done();
 };
+
