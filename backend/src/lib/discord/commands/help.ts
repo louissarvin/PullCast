@@ -20,3 +20,4 @@ const handler = async (interaction: ChatInputCommandInteraction): Promise<void> 
 };
 
 export const helpCommand: Command = { data, handler };
+
