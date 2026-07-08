@@ -1,0 +1,50 @@
+{
+  "name": "pullcast",
+  "version": "0.0.1",
+  "description": "Community CLI extending the official Renaiss CLI with a collector-focused layer over the Renaiss main API and Renaiss OS Index API.",
+  "type": "module",
+  "bin": {
+    "pullcast": "./dist/pullcast.mjs"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pullcast/pullcast.git"
+  },
+  "homepage": "https://pullcast.xyz",
+  "bugs": {
+    "url": "https://github.com/pullcast/pullcast/issues"
+  },
+  "license": "MIT",
+  "author": "PullCast",
+  "keywords": [
+    "pullcast",
+    "renaiss",
+    "cli",
+    "trading-cards",
+    "pokemon",
+    "one-piece",
+    "graded-cards",
+    "marketplace"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "commander": "^14.0.3",
+    "openapi-fetch": "^0.17.0"
+  },
+  "scripts": {
+    "build": "bun build --compile --target=bun-linux-x64 ./src/index.ts --outfile=./dist/pullcast",
+    "build:mjs": "bun build ./src/index.ts --target=node --format=esm --outfile=./dist/pullcast.mjs",
+    "start": "bun run ./src/index.ts",
+    "test": "bun test ../tests/cli-smoke.test.ts"
+  }
+}
