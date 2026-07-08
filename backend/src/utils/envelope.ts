@@ -145,3 +145,4 @@ export const buildEnvelope = <T>(
     generated_at: new Date().toISOString(),
   };
 };
+
