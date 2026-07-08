@@ -1,0 +1,611 @@
+openapi: 3.1.0
+info:
+  title: PullCast API
+  version: 0.7.0
+  description: |
+    Public REST surface for the PullCast backend (Renaiss Tech Hackathon S1).
+
+    Every JSON response uses the envelope
+    `{ success, error, data, timestamp? }`. On success, `data` carries a
+    `_disclosure` marker with the constant from `src/lib/disclosure/index.ts`:
+    `"Beta data from Renaiss API and Renaiss Index API (experimental). Sources cited. Not financial advice."`
+
+    All endpoints are read-only and unauthenticated. Per-IP rate limits are
+    enforced via an atomic Postgres-backed token bucket; see each route's
+    `429` response for exhaustion semantics.
+
+    `GET /og/{pullId}` is the only non-JSON route; it returns `image/png` with
+    `Cache-Control: public, max-age=3600, immutable`.
+
+    Source of truth: this YAML is generated from `src/routes/*.ts` at D7
+    (2026-06-30). Re-validate after route edits.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+  - url: http://localhost:3700
+    description: Local development
+  - url: https://api.pullcast.xyz
+    description: Production (placeholder; confirm at deploy time)
+
+tags:
+  - name: Health
+    description: Liveness and readiness probes.
+  - name: Pulls
+    description: Indexed Renaiss pack pulls.
+  - name: Wallets
+    description: Per-wallet pull galleries.
+  - name: Price
+    description: Renaiss main API and Index API FMV lookups.
+  - name: Leaderboard
+    description: Hourly snapshots of top pulls by realized net gain.
+  - name: Odds
+    description: Pull-economy stats for tracked Renaiss packs.
+  - name: AI
+    description: Grounded Anthropic Haiku explainers and listing-price suggestions.
+  - name: OG
+    description: Share-card PNG for OpenGraph / Twitter unfurls.
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      description: Status, uptime, last successful indexer poll, Discord readiness, optional gitSha.
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+
+  /health/db:
+    get:
+      tags: [Health]
+      summary: Database ping
+      description: SELECT 1 against Postgres. Always 200; clients read `data.db`.
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+
+  /api/pulls:
+    get:
+      tags: [Pulls]
+      summary: List pulls (newest first)
+      description: |
+        Keyset-paginated public projection. Excludes `rawAttributesJson`,
+        `txHash`, `blockNumber`, `backImageUrl`. Soft-deleted rows excluded.
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '400': { $ref: '#/components/responses/InvalidParam' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/pulls/{id}:
+    get:
+      tags: [Pulls]
+      summary: Get a single pull
+      parameters:
+        - $ref: '#/components/parameters/PullId'
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '400': { $ref: '#/components/responses/InvalidParam' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/wallets/{address}/pulls:
+    get:
+      tags: [Wallets]
+      summary: List pulls for a wallet
+      description: Per-wallet gallery, keyset paginated, newest first.
+      parameters:
+        - $ref: '#/components/parameters/WalletAddress'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '400': { $ref: '#/components/responses/InvalidParam' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/price/token/{id}:
+    get:
+      tags: [Price]
+      summary: FMV lookup by Renaiss tokenId
+      description: |
+        Blends Renaiss main API card data with Index API graded record (when a
+        `serial` attribute is present). `recommendedFmvUsdCents` prefers the
+        Index value. Per-IP bucket `http:ip:<ip>:price` (cap 20, refill 20/min).
+      parameters:
+        - $ref: '#/components/parameters/TokenId'
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '400': { $ref: '#/components/responses/InvalidParam' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '502': { $ref: '#/components/responses/UpstreamUnavailable' }
+
+  /api/price/cert/{cert}:
+    get:
+      tags: [Price]
+      summary: Graded cert lookup
+      description: |
+        Cert format `^(PSA|BGS|CGC|SGC)\d{6,12}$`. Cache-backed via `CertCache`
+        (1h TTL). Returns 404 with `data.found: false` when Index API responds
+        successfully but has no record.
+      parameters:
+        - $ref: '#/components/parameters/Cert'
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '400': { $ref: '#/components/responses/InvalidParam' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '502': { $ref: '#/components/responses/UpstreamUnavailable' }
+
+  /api/price/search:
+    get:
+      tags: [Price]
+      summary: Index API card search
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 200 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 25, default: 10 }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '400': { $ref: '#/components/responses/InvalidParam' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '502': { $ref: '#/components/responses/UpstreamUnavailable' }
+
+  /api/leaderboard/daily:
+    get:
+      tags: [Leaderboard]
+      summary: Current top-5 leaderboard
+      description: |
+        Most-recent `LeaderboardSnapshot` batch (5 rows). When no snapshot has
+        run yet, returns 200 with `entries: []` and a synthesized trailing-24h
+        window. Per-IP bucket cap 30, refill 30/min.
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/leaderboard/history:
+    get:
+      tags: [Leaderboard]
+      summary: Last N hourly top-1 winners
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 168, default: 24 }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '400': { $ref: '#/components/responses/InvalidParam' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/odds/{pack}:
+    get:
+      tags: [Odds]
+      summary: Pull-economy stats for a tracked pack
+      description: |
+        Pack must be in `INDEXER_TRACKED_PACKS`. Off-list returns 404. If
+        trailing-90d window has fewer than 10 pulls, returns 200 with
+        `insufficientSample: true` and zeroed aggregates. Per-IP bucket cap 20,
+        refill 20/min.
+      parameters:
+        - $ref: '#/components/parameters/PackSlug'
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '400': { $ref: '#/components/responses/InvalidParam' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/explain:
+    post:
+      tags: [AI]
+      summary: Grounded Auranaiss-style card explanation
+      description: |
+        Calls Anthropic Haiku with retrieved sources (>=2 required). Predictive
+        questions and prompt-injection patterns are refused without a model
+        call. Global daily bucket `anthropic:global:requests:YYYYMMDD` (500
+        req/day, no refill) gates before the per-IP `:ai` bucket (cap 3,
+        refill 3/min).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ExplainRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '400': { $ref: '#/components/responses/InvalidParam' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/listing:
+    post:
+      tags: [AI]
+      summary: AI-recommended listing price range
+      description: |
+        Computes a deterministic fast/fair/max range from Index API
+        comparables; Haiku only writes the explanation. Same rate limits as
+        `/api/explain`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ListingRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '400': { $ref: '#/components/responses/InvalidParam' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /og/{pullId}:
+    get:
+      tags: [OG]
+      summary: Share-card PNG (1200x630)
+      description: |
+        Renders via Satori + resvg. Stampede-coalesced. Render failure returns
+        a placeholder PNG with the disclosure watermark, not 500. Per-IP
+        bucket cap 30, refill 30/min.
+      parameters:
+        - $ref: '#/components/parameters/PullId'
+        - in: query
+          name: variant
+          schema:
+            type: string
+            enum: [psa, bgs, cgc, sgc, generic]
+          description: '`sgc` aliases to `generic`. Default: auto-detect from grading company.'
+      responses:
+        '200':
+          description: PNG image
+          headers:
+            Cache-Control:
+              schema: { type: string, example: 'public, max-age=3600, immutable' }
+          content:
+            image/png:
+              schema: { type: string, format: binary }
+        '400': { $ref: '#/components/responses/InvalidParam' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+components:
+  parameters:
+    WalletAddress:
+      in: path
+      name: address
+      required: true
+      schema:
+        type: string
+        pattern: '^0x[a-fA-F0-9]{40}$'
+      description: EVM wallet. Lowercased server-side.
+    PullId:
+      in: path
+      name: pullId
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z0-9]{24,30}$'
+      description: cuid-shaped Pull id.
+    TokenId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        pattern: '^[0-9]{1,78}$'
+      description: BSC uint256 tokenId as decimal string.
+    Cert:
+      in: path
+      name: cert
+      required: true
+      schema:
+        type: string
+        pattern: '^(PSA|BGS|CGC|SGC)\d{6,12}$'
+      description: Graded cert.
+    PackSlug:
+      in: path
+      name: pack
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z0-9][a-z0-9-]{0,63}$'
+      description: Pack slug. Must be in `INDEXER_TRACKED_PACKS`.
+    Limit:
+      in: query
+      name: limit
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    Cursor:
+      in: query
+      name: cursor
+      schema:
+        type: string
+        pattern: '^[a-z0-9]{24,30}$'
+      description: Opaque cursor from the previous page's `nextCursor`.
+
+  responses:
+    Ok:
+      description: Success envelope. `data` shape varies by route; see schemas below.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/SuccessEnvelope' }
+    InvalidParam:
+      description: Validation failed.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    RateLimited:
+      description: Too many requests.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    InternalError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    UpstreamUnavailable:
+      description: Upstream Renaiss API unreachable.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  schemas:
+    Disclosure:
+      type: string
+      example: 'Beta data from Renaiss API and Renaiss Index API (experimental). Sources cited. Not financial advice.'
+
+    SuccessEnvelope:
+      type: object
+      required: [success, error, data]
+      properties:
+        success: { type: boolean, const: true }
+        error: { type: 'null' }
+        data:
+          type: object
+          additionalProperties: true
+          properties:
+            _disclosure: { $ref: '#/components/schemas/Disclosure' }
+
+    ErrorResponse:
+      type: object
+      required: [success, error, data]
+      properties:
+        success: { type: boolean, const: false }
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, example: INVALID_PARAM }
+            message: { type: string }
+            details: { type: string, description: 'Dev mode only.' }
+            stack: { type: string, description: 'Dev mode only.' }
+        data: { type: 'null' }
+        timestamp: { type: string, format: date-time }
+
+    Pull:
+      type: object
+      required:
+        - id
+        - packSlug
+        - collectibleTokenId
+        - buyerAddress
+        - packPriceUsdCents
+        - pulledAtTimestamp
+        - createdAt
+      properties:
+        id: { type: string }
+        packSlug: { type: string }
+        collectibleTokenId:
+          type: string
+          description: BSC uint256 tokenId as decimal string.
+        buyerAddress: { type: string, description: Lowercase 0x-prefixed wallet. }
+        tier: { type: string, nullable: true }
+        fmvUsdCents: { type: integer, nullable: true }
+        packPriceUsdCents: { type: integer }
+        netGainUsdCents: { type: integer, nullable: true }
+        pulledAtTimestamp: { type: string, format: date-time }
+        cardName: { type: string, nullable: true }
+        setName: { type: string, nullable: true }
+        cardNumber: { type: string, nullable: true }
+        gradingCompany: { type: string, nullable: true }
+        grade: { type: string, nullable: true }
+        serial: { type: string, nullable: true }
+        frontImageUrl: { type: string, format: uri, nullable: true }
+        shareCardPostedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    SourceCitation:
+      type: object
+      required: [name, url]
+      properties:
+        name: { type: string }
+        url: { type: string, format: uri }
+
+    PriceLookupResult:
+      type: object
+      description: Returned by `GET /api/price/token/{id}` inside `data`.
+      properties:
+        tokenId: { type: string }
+        cert: { type: string, nullable: true }
+        cardName: { type: string, nullable: true }
+        setName: { type: string, nullable: true }
+        cardNumber: { type: string, nullable: true }
+        gradingCompany: { type: string, nullable: true }
+        grade: { type: string, nullable: true }
+        serial: { type: string, nullable: true }
+        imageUrl: { type: string, format: uri, nullable: true }
+        mainApiFmvUsdCents: { type: integer, nullable: true }
+        indexApiFmvUsdCents: { type: integer, nullable: true }
+        recommendedFmvUsdCents: { type: integer, nullable: true }
+        confidence:
+          type: string
+          enum: [high, medium, low]
+          nullable: true
+        lastSaleAt: { type: string, format: date-time, nullable: true }
+        variancePctOver20: { type: boolean }
+        hasGradedCert: { type: boolean }
+        sources:
+          type: array
+          items: { $ref: '#/components/schemas/SourceCitation' }
+
+    LeaderboardEntry:
+      type: object
+      required: [rank, pull, netGainUsdCents]
+      properties:
+        rank: { type: integer, minimum: 1, maximum: 5 }
+        pull: { $ref: '#/components/schemas/Pull' }
+        netGainUsdCents: { type: integer }
+        fmvUsdCents: { type: integer, nullable: true }
+
+    OddsStats:
+      type: object
+      description: Returned by `GET /api/odds/{pack}` inside `data`.
+      required:
+        - packSlug
+        - windowDays
+        - windowStartAt
+        - windowEndAt
+        - totalPulls
+        - insufficientSample
+        - minSample
+        - meanNetGainUsdCents
+        - medianNetGainUsdCents
+        - winRate
+        - top5
+        - byTier
+      properties:
+        packSlug: { type: string }
+        windowDays: { type: integer }
+        windowStartAt: { type: string, format: date-time }
+        windowEndAt: { type: string, format: date-time }
+        totalPulls: { type: integer }
+        insufficientSample:
+          type: boolean
+          description: True when totalPulls < minSample. Other aggregates zeroed.
+        minSample: { type: integer }
+        meanNetGainUsdCents: { type: integer }
+        medianNetGainUsdCents: { type: integer }
+        winRate:
+          type: number
+          format: float
+          description: Fraction of pulls with net gain > 0 (0..1).
+        top5:
+          type: array
+          items:
+            type: object
+            properties:
+              netGainUsdCents: { type: integer }
+              tier: { type: string, nullable: true }
+              gradingCompany: { type: string, nullable: true }
+              grade: { type: string, nullable: true }
+        byTier:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              count: { type: integer }
+              avgNetGain: { type: integer }
+
+    AiSource:
+      type: object
+      required: [id, name, url]
+      properties:
+        id:
+          type: integer
+          description: 1-based `[source-N]` citation index.
+        name: { type: string }
+        url: { type: string, format: uri }
+        excerpt: { type: string }
+        confidence: { type: string, enum: [high, medium, low] }
+        fetchedAt: { type: string, format: date-time }
+
+    ExplainRequest:
+      type: object
+      required: [subject, value, question]
+      properties:
+        subject:
+          type: string
+          enum: [cert, token]
+        value:
+          type: string
+          description: Cert when `subject=cert`, decimal tokenId when `subject=token`.
+        question: { type: string, minLength: 5, maxLength: 800 }
+
+    ExplainResult:
+      type: object
+      description: Returned by `POST /api/explain` inside `data`.
+      required: [text, sources]
+      properties:
+        text: { type: string }
+        sources:
+          type: array
+          items: { $ref: '#/components/schemas/AiSource' }
+        refused:
+          type: object
+          nullable: true
+          properties:
+            reason:
+              type: string
+              example: predictive-question
+
+    ListingRequest:
+      type: object
+      required: [subject, value]
+      properties:
+        subject: { type: string, enum: [cert, token] }
+        value: { type: string }
+
+    ListingResult:
+      type: object
+      description: Returned by `POST /api/listing` inside `data`.
+      required:
+        - text
+        - sources
+        - card
+        - rangeLowUsdCents
+        - rangeMidUsdCents
+        - rangeHighUsdCents
+        - comparableCount
+        - primaryFmvUsdCents
+        - primarySource
+        - confidence
+      properties:
+        text: { type: string }
+        sources:
+          type: array
+          items: { $ref: '#/components/schemas/AiSource' }
+        card:
+          type: object
+          properties:
+            name: { type: string, nullable: true }
+            setName: { type: string, nullable: true }
+            grade: { type: string, nullable: true }
+            cardId: { type: string, nullable: true }
+            cert: { type: string, nullable: true }
+        rangeLowUsdCents: { type: integer, nullable: true }
+        rangeMidUsdCents: { type: integer, nullable: true }
+        rangeHighUsdCents: { type: integer, nullable: true }
+        comparableCount: { type: integer }
+        primaryFmvUsdCents: { type: integer, nullable: true }
+        primarySource: { type: string }
+        confidence:
+          type: string
+          enum: [high, medium, low]
+          nullable: true
+        refused:
+          type: object
+          nullable: true
+          properties:
+            reason: { type: string }
