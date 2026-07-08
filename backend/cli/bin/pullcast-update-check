@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# pullcast-update-check — compares the installed pullcast CLI version against
+# the latest published on npm.
+#
+# Output (one line, or nothing):
+#   UPGRADE_AVAILABLE <installed> <latest>   — a newer version is on npm
+#   (nothing)                                — up to date, disabled, or offline
+#
+# Cached in ~/.pullcast/update-check-cache for 4h so we do not hammer npm.
+# Opt out with PULLCAST_UPDATE_CHECK_DISABLE=1. In tests you can pin the
+# "latest" answer with PULLCAST_LATEST_OVERRIDE=x.y.z (bypasses network + cache).
+set -euo pipefail
+
+PLUGIN_DIR="${PULLCAST_PLUGIN_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+STATE_DIR="${PULLCAST_STATE_DIR:-$HOME/.pullcast}"
+CACHE="$STATE_DIR/update-check-cache"
+LOCAL_JSON="$PLUGIN_DIR/package.json"
+REMOTE_URL="${PULLCAST_REMOTE_URL:-https://registry.npmjs.org/pullcast/latest}"
+TTL="${PULLCAST_UPDATE_TTL:-14400}" # 4h
+
+[ "${PULLCAST_UPDATE_CHECK_DISABLE:-}" = "1" ] && exit 0
+[ "${1:-}" = "--force" ] && rm -f "$CACHE"
+
+# Extract the first "version": "x.y.z" without needing jq.
+_ver() { grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([0-9][^"]*\)".*/\1/'; }
+
+LOCAL="$(_ver < "$LOCAL_JSON" 2>/dev/null || true)"
+[ -z "$LOCAL" ] && exit 0
+
+mkdir -p "$STATE_DIR"
+
+# Test / offline override: skip network + cache when the caller pins latest.
+if [ -n "${PULLCAST_LATEST_OVERRIDE:-}" ]; then
+  REMOTE="$PULLCAST_LATEST_OVERRIDE"
+else
+  # Serve cached verdict if the last check is still fresh.
+  if [ -f "$CACHE" ]; then
+    _mtime="$(stat -f %m "$CACHE" 2>/dev/null || stat -c %Y "$CACHE" 2>/dev/null || echo 0)"
+    if [ "$(( $(date +%s) - _mtime ))" -lt "$TTL" ]; then
+      cat "$CACHE"
+      exit 0
+    fi
+  fi
+  REMOTE="$(curl -fsSL --max-time 5 "$REMOTE_URL" 2>/dev/null | _ver || true)"
+  : > "$CACHE" # default: up to date (empty)
+fi
+
+[ -z "$REMOTE" ] && exit 0
+
+# Newer published version? (sort -V puts the higher semver last)
+if [ "$LOCAL" != "$REMOTE" ] && \
+   [ "$(printf '%s\n%s\n' "$LOCAL" "$REMOTE" | sort -V | tail -1)" = "$REMOTE" ]; then
+  if [ -n "${PULLCAST_LATEST_OVERRIDE:-}" ]; then
+    printf 'UPGRADE_AVAILABLE %s %s\n' "$LOCAL" "$REMOTE"
+  else
+    printf 'UPGRADE_AVAILABLE %s %s\n' "$LOCAL" "$REMOTE" | tee "$CACHE"
+  fi
+fi
