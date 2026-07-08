@@ -729,3 +729,4 @@ if (isEntry()) {
     process.exit(1);
   });
 }
+
