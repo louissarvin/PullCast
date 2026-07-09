@@ -619,3 +619,4 @@ function MarketPage() {
     </main>
   )
 }
+
