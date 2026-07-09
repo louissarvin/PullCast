@@ -198,3 +198,4 @@ function TradesPage() {
     </main>
   )
 }
+
