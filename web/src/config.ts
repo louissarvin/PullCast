@@ -25,3 +25,4 @@ export const config: AppConfig = {
 }
 
 export type Config = AppConfig
+
