@@ -585,3 +585,4 @@ const handler = async (interaction: ChatInputCommandInteraction): Promise<void> 
 };
 
 export const alertsCommand: Command = { data, handler };
+
