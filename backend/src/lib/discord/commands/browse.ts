@@ -522,3 +522,4 @@ const handler = async (interaction: ChatInputCommandInteraction): Promise<void> 
 };
 
 export const browseCommand: Command = { data, handler };
+
