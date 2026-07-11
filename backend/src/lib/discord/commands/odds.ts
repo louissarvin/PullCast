@@ -205,3 +205,4 @@ const handler = async (interaction: ChatInputCommandInteraction): Promise<void> 
 };
 
 export const oddsCommand: Command = { data, handler };
+
