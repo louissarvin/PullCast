@@ -28,3 +28,4 @@ export function IndexAttribution({ className }: { className?: string }) {
     </p>
   )
 }
+
