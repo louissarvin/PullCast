@@ -174,3 +174,4 @@ const handler = async (interaction: ChatInputCommandInteraction): Promise<void> 
 };
 
 export const tradesCommand: Command = { data, handler };
+
