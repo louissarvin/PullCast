@@ -5,7 +5,7 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "bunx prisma db push --config prisma/prisma.config.ts --accept-data-loss --skip-generate; bun index.ts",
+    "startCommand": "bunx prisma db push --config prisma/prisma.config.ts --accept-data-loss || true; bun index.ts",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 180,
     "restartPolicyType": "ON_FAILURE",
