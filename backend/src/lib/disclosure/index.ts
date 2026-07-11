@@ -77,3 +77,4 @@ export const getSourceCitationBlock = (
   });
   return lines.join('\n');
 };
+
