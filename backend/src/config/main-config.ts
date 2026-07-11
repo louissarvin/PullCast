@@ -40,7 +40,12 @@ for (const envVar of requiredEnvVars) {
 // ---------------------------------------------------------------------------
 // App
 // ---------------------------------------------------------------------------
-export const APP_PORT: number = Number(process.env.APP_PORT) || 3700;
+// Port resolution order:
+//   1. APP_PORT — our explicit override (set on Railway to 3700 for /health matching)
+//   2. PORT     — Railway/Heroku/Fly convention; auto-injected by the platform
+//   3. 3700     — dev default
+export const APP_PORT: number =
+  Number(process.env.APP_PORT) || Number(process.env.PORT) || 3700;
 // M-1: default to production. Dev mode is the explicit opt-in via NODE_ENV=development.
 // This guards against demo boxes / Fly / Render free tier deployments forgetting
 // to set NODE_ENV, which would otherwise leak stack traces through errorHandler.
