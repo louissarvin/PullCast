@@ -67,3 +67,4 @@ const handler = async (interaction: ChatInputCommandInteraction): Promise<void> 
 };
 
 export const renaissCommand: Command = { data, handler };
+
