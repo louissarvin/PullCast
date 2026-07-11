@@ -217,3 +217,4 @@ function getExitGSAPVars(animation: ExitAnimation): gsap.TweenVars {
 
   return animations[animation] || animations.fadeOutDown
 }
+
