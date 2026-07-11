@@ -61,7 +61,19 @@ const loadMarketplace = (): { text: string; obj: unknown } | null => {
     cachedMarketplaceObj = obj;
     return { text: raw, obj };
   } catch (err) {
-    console.error(`${LOG_PREFIX} failed to load marketplace.json:`, err);
+    // Marketplace.json is an optional local dev snapshot — it's git-ignored
+    // and does not ship with the production image. Downgrade to `info` so
+    // this never masquerades as an error in Railway logs.
+    const isMissing =
+      typeof err === 'object' &&
+      err !== null &&
+      'code' in err &&
+      (err as { code?: string }).code === 'ENOENT';
+    if (isMissing) {
+      console.info(`${LOG_PREFIX} marketplace.json not present, Claude plugin routes will 404`);
+    } else {
+      console.error(`${LOG_PREFIX} failed to load marketplace.json:`, err);
+    }
     return null;
   }
 };

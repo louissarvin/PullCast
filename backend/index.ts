@@ -119,19 +119,34 @@ fastify.register(claudePluginRoutes); // /claude-plugin/marketplace.json (root-l
 fastify.register(renaissIdRoutes, { prefix: '/api/cards' }); // /api/cards/renaiss-id/:rid[/{overview,trades,series,fmv-series}]
 
 const bootDiscord = async (): Promise<boolean> => {
-  try {
-    await loginDiscord();
-    const client = getDiscordClient();
-    wireCommandHandlers(client, ALL_COMMANDS);
-    await registerCommands(client, ALL_COMMANDS);
-    return true;
-  } catch (err) {
-    // Dev convenience: a placeholder token throws on login. We log loudly and
-    // continue so the indexer can persist Pull rows and Fastify can still
-    // serve REST routes.
-    console.warn(`[boot] Discord login failed, indexer + bot disabled: ${redactSecrets(err)}`);
-    return false;
-  }
+  // Cap the entire Discord boot at 30s. A bad token causes discord.js to retry
+  // forever silently; without this timeout, the whole process (including
+  // Fastify) hangs and Railway's healthcheck fails. Better to boot the REST
+  // API without Discord and let ops fix the token in the background.
+  const DISCORD_BOOT_TIMEOUT_MS = 30_000;
+  const timeout = new Promise<boolean>((resolve) => {
+    setTimeout(() => {
+      console.warn(
+        `[boot] Discord login timed out after ${DISCORD_BOOT_TIMEOUT_MS}ms — proceeding without Discord. Check DISCORD_BOT_TOKEN.`
+      );
+      resolve(false);
+    }, DISCORD_BOOT_TIMEOUT_MS);
+  });
+  const attempt = (async () => {
+    try {
+      await loginDiscord();
+      const client = getDiscordClient();
+      wireCommandHandlers(client, ALL_COMMANDS);
+      await registerCommands(client, ALL_COMMANDS);
+      return true;
+    } catch (err) {
+      console.warn(
+        `[boot] Discord login failed, indexer + bot disabled: ${redactSecrets(err)}`
+      );
+      return false;
+    }
+  })();
+  return Promise.race([attempt, timeout]);
 };
 
 const start = async (): Promise<void> => {
