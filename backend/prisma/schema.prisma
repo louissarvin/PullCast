@@ -274,3 +274,4 @@ model RateLimitBucket {
   // R2: removed redundant @@index([bucketKey]) - covered by @unique.
   @@index([deletedAt])
 }
+
