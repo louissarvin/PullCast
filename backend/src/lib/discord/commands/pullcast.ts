@@ -700,3 +700,4 @@ const handler = async (interaction: ChatInputCommandInteraction): Promise<void> 
 };
 
 export const pullcastCommand: Command = { data, handler };
+
