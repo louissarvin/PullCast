@@ -41,3 +41,4 @@ export function Sparkline({ data, width = 120, height = 36, className }: Sparkli
     </svg>
   )
 }
+
