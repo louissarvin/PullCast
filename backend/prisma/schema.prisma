@@ -13,10 +13,11 @@ generator client {
   output   = "./generated"
 }
 
+// Prisma 7 note: `url` and `directUrl` are NOT allowed here.
+// Connection strings are declared in `prisma.config.ts` instead.
+// See https://pris.ly/d/prisma7-client-config
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
 model User {
