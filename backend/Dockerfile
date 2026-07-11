@@ -1,54 +1,64 @@
-# Use a Node.js base image
-FROM node:18.15-slim as builder
+# PullCast backend — Fastify + Prisma + Discord bot + 4 cron workers on Bun.
+# Two-stage build so the final image is small and doesn't ship dev deps.
 
-RUN apt-get update -y
-RUN apt-get install -y openssl
+# ─── Stage 1: builder ─────────────────────────────────────────────────────────
+FROM oven/bun:1.1-debian AS builder
 
-# Set the working directory in the Docker container
+# System deps:
+#   - openssl: required by Prisma at runtime for TLS to Postgres
+#   - libc6, libstdc++6: required by @resvg/resvg-js native binding (share card render)
+#   - ca-certificates: required for HTTPS to Renaiss + Discord + Groq
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends \
+        openssl \
+        libc6 \
+        libstdc++6 \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json (or npm-shrinkwrap.json) to the working directory
-COPY ["package.json", "package-lock.json*", "npm-shrinkwrap.json*", "./"]
+# Install deps first (Docker cache layer) — copy only manifest + lockfile
+COPY package.json bun.lockb* ./
 
-# Install dependencies including 'devDependencies' for building
-RUN npm install --silent
+# Full install (includes devDeps we need for prisma CLI + tsc)
+RUN bun install --frozen-lockfile || bun install
 
-# Copy the rest of your application's source code
-COPY . .
-
-# Use Prisma to generate client
-RUN npx prisma generate
-
-# Start a new stage to keep the final image small
-FROM node:18.15-slim
-
-# Environment variable to set node environment to production
-ENV NODE_ENV=production
-
-# Set the working directory in the Docker container
-WORKDIR /usr/src/app
-
-# Copy package.json and package-lock.json (or npm-shrinkwrap.json)
-COPY ["package.json", "package-lock.json*", "npm-shrinkwrap.json*", "./"]
-
-# Install only production dependencies
-RUN npm install --production --silent
-
-# Copy the application source files (JavaScript) from the builder stage
-COPY --from=builder /usr/src/app ./
-
-# Copy Prisma schema and migrations
+# Copy Prisma schema BEFORE `bun run db:generate` so the generator has the file
 COPY prisma ./prisma
 
-# Generate Prisma client
-RUN npx prisma generate
+# Generate Prisma client (writes to prisma/generated/)
+RUN bunx prisma generate --config prisma/prisma.config.ts
 
-# Use non-root user for better security
-RUN chown -R node /usr
-USER node
+# Copy the rest of the source
+COPY . .
 
-# Expose the port your app runs on
-EXPOSE 3677
+# ─── Stage 2: runtime ─────────────────────────────────────────────────────────
+FROM oven/bun:1.1-debian AS runtime
 
-# Command to run your app
-CMD ["node", "index.js"]
+# Same runtime deps — no dev tools, no build tools.
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends \
+        openssl \
+        libc6 \
+        libstdc++6 \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV NODE_ENV=production
+ENV APP_PORT=3700
+
+WORKDIR /usr/src/app
+
+# Copy the fully-built app from the builder stage
+COPY --from=builder /usr/src/app ./
+
+# Drop privileges — the oven/bun image ships a non-root `bun` user
+RUN chown -R bun:bun /usr/src/app
+USER bun
+
+# Fastify listens on APP_PORT (defaults to 3700). Railway/Fly bind this.
+EXPOSE 3700
+
+# Bun runs TypeScript natively — no build step, no dist folder
+CMD ["bun", "index.ts"]

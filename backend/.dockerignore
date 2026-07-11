@@ -1,0 +1,32 @@
+# Never ship these into the image
+node_modules/
+.env
+.env.*
+!.env.example
+
+# Prisma generated client — regenerated inside the build
+prisma/generated/
+
+# Local dev output
+tmp/
+.output/
+dist/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Docs / tests we don't need at runtime
+docs/
+tests/
+*.md
+!README.md
+
+# CI / IDE config that adds noise
+.github/
+.eslintrc*
+.prettierrc*
+.gitignore
