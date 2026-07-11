@@ -154,7 +154,7 @@ export default function PillNavbar() {
             className="flex-shrink-0 rounded-[var(--radius-sm)] focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-3"
           >
             <img
-              src="/assets/logo.svg"
+              src="/assets/logo-index.svg"
               alt="PullCast"
               width={144}
               height={40}

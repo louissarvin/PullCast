@@ -322,7 +322,9 @@ function HowItWorksSection() {
 
 // ─── Pull of the Day (top 3 net-gain leaderboard on homepage) ────────────────
 
-const RANK_MEDAL_HOME: Record<number, { emoji: string; ring: string; glow: string }> = {
+const RANK_MEDAL_HOME: Partial<
+  Record<number, { emoji: string; ring: string; glow: string }>
+> = {
   1: {
     emoji: '🥇',
     ring: 'ring-2 ring-[rgba(245,158,11,0.45)]',
@@ -342,7 +344,7 @@ const RANK_MEDAL_HOME: Record<number, { emoji: string; ring: string; glow: strin
 
 function PullOfTheDaySection() {
   const { data: result, isLoading, isError } = useQuery(leaderboardQuery)
-  const entries = result?.data?.entries ?? []
+  const entries = result?.data.entries ?? []
   const top3 = entries.slice(0, 3)
 
   // Hide the section entirely on empty state so the homepage stays tight until
@@ -350,7 +352,7 @@ function PullOfTheDaySection() {
   if (!isLoading && !isError && top3.length === 0) return null
 
   const formatFmv = (cents: number | null): string => {
-    if (cents === null || cents === undefined || !Number.isFinite(cents)) return '—'
+    if (cents === null || !Number.isFinite(cents)) return '—'
     const usd = cents / 100
     if (Math.abs(usd) >= 1000) {
       return `$${usd.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
@@ -843,7 +845,8 @@ function EcosystemIndexSection() {
         <p className="text-caption text-[var(--color-ink-subtle)] mt-8 reveal-on-scroll">
           Example set:{' '}
           <Link
-            to="/sets/pokemon/pokemon-japanese-sv2a-pokemon-151"
+            to="/sets/$game/$set"
+            params={{ game: 'pokemon', set: 'pokemon-japanese-sv2a-pokemon-151' }}
             className="text-[var(--color-accent)] hover:underline"
           >
             Pokémon 151 (JP)

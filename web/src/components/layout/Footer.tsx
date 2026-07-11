@@ -42,7 +42,7 @@ export default function Footer() {
               className="inline-flex items-center focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-3 focus-visible:outline rounded-[var(--radius-xs)]"
             >
               <img
-                src="/assets/logo.svg"
+                src="/assets/logo-index.svg"
                 alt="PullCast"
                 width={192}
                 height={54}
