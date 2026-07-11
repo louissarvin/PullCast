@@ -1,0 +1,64 @@
+{
+  "collectible": {
+    "tokenId": "101731608654931235889888025042562257763838379592771207661150370518846253648795",
+    "name": "PSA 10 Gem Mint 2018 Pokemon Japanese Sun & Moon Tag Bolt #031 Pikachu & Zekrom GX",
+    "setName": "Sun & Moon Tag Bolt",
+    "cardNumber": "031",
+    "pokemonName": "Pikachu & Zekrom GX",
+    "ownerAddress": "0xabcdef0123456789abcdef0123456789abcdef01",
+    "askPriceInUSDT": "150000000",
+    "askExpiresAt": "2026-08-01T00:00:00.000Z",
+    "fmvPriceInUSD": "44300",
+    "frontImageUrl": "https://cdn.renaiss.xyz/cards/101731608654/front.png",
+    "backImageUrl": "https://cdn.renaiss.xyz/cards/101731608654/back.png",
+    "frontWithoutStandImageUrl": "https://cdn.renaiss.xyz/cards/101731608654/front-nostand.png",
+    "attributes": [
+      { "trait": "Grading Company", "value": "PSA" },
+      { "trait": "Grade", "value": "10 Gem Mint" },
+      { "trait": "Serial", "value": "PSA73628064" },
+      { "trait": "Year", "value": "2018" },
+      { "trait": "Language", "value": "Japanese" }
+    ],
+    "vaultLocation": "platform",
+    "gradingCompany": "PSA",
+    "grade": "10 Gem Mint",
+    "year": 2018,
+    "ownerAcquiredAt": "2026-06-15T09:42:00.000Z",
+    "type": "POKEMON",
+    "custodyProvider": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "businessName": "Brinks Vault",
+      "countryCode": "US"
+    },
+    "owner": {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "username": "pikafan"
+    }
+  },
+  "pricing": {
+    "price": { "value": "150000000", "token": "USDT" },
+    "top_offer": { "value": "140000000", "token": "USDT" },
+    "last_sale": { "value": "142500000", "token": "USDT" },
+    "price_history": [
+      {
+        "timestamp": "1782500000",
+        "amount": { "value": "142500000", "token": "USDT" }
+      }
+    ],
+    "offers": []
+  },
+  "activities": {
+    "activities": [
+      {
+        "user": "0xabcdef0123456789abcdef0123456789abcdef01",
+        "timestamp": "1782500000",
+        "blockNumber": "58000000",
+        "txHash": "0xdeadbeef",
+        "ordinal": "1",
+        "tokenAmount": "1",
+        "tokenId": "101731608654931235889888025042562257763838379592771207661150370518846253648795",
+        "type": "mint"
+      }
+    ]
+  }
+}

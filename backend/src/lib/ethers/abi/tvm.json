@@ -1,0 +1,32 @@
+[
+  {
+    "type": "function",
+    "name": "totalSupply",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "type": "event",
+    "name": "CheckoutSuccess",
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "caller", "type": "address" },
+      { "indexed": true, "internalType": "bytes32", "name": "packId", "type": "bytes32" },
+      { "indexed": true, "internalType": "bytes32", "name": "checkoutMessageHash", "type": "bytes32" },
+      { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "BuybackSuccessV3",
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "user", "type": "address" },
+      { "indexed": true, "internalType": "bytes32", "name": "checkoutMessageHash", "type": "bytes32" },
+      { "indexed": false, "internalType": "address", "name": "token", "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "fmvInUsd", "type": "uint256" }
+    ]
+  }
+]

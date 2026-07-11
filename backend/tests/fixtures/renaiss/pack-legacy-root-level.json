@@ -1,0 +1,24 @@
+{
+  "slug": "legacy-pack",
+  "name": "Legacy Pack",
+  "packPriceInUSD": "7350",
+  "status": "active",
+  "recentOpenedPacks": [
+    {
+      "collectibleTokenId": "111111111",
+      "tier": "rare",
+      "fmv": "12500",
+      "pulledAtTimestamp": "2026-07-01T12:00:00.000Z",
+      "buyerAddress": "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "txHash": "0xdead",
+      "blockNumber": 42
+    },
+    {
+      "collectibleTokenId": "222222222",
+      "tier": "common",
+      "fmv": "4200",
+      "pulledAtTimestamp": "2026-07-01T13:00:00.000Z",
+      "buyerAddress": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ]
+}

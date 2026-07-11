@@ -1,0 +1,41 @@
+{
+  "_provenance": {
+    "note": "Derived from https://api.renaiss.xyz/openapi.json (schema for GET /v0/users/{id}, 200 response). NOT a mock: every field name, type, nullability, and required-set matches the API's own openapi contract as of 2026-07-02. A live-fetched success example is not included because the public API surface has no anonymous user-discovery path (marketplace exposes ownerAddress not ownerId; owner objects expose only username; frontend does not link to /users/<uuid> pages). See memory/d8-user-odds-progress.md coaching questions for the address-to-UUID bridge ask.",
+    "sourceUrl": "https://api.renaiss.xyz/openapi.json",
+    "capturedAt": "2026-07-02T00:00:00Z"
+  },
+  "id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+  "username": "ExampleCollector",
+  "avatarUrl": "https://cdn.renaiss.xyz/avatars/aaaaaaaa.png",
+  "favoritedCollectibles": [
+    {
+      "tokenId": "105213752800124838738142318782550687414785992633220864119453208310739833422926",
+      "collectible": {
+        "item": {
+          "setName": "Pokemon Japanese Sun & Moon Dragon Storm",
+          "name": "Zinnia",
+          "year": 2018,
+          "cardNumber": "059",
+          "gradingCompany": "PSA",
+          "grade": "10 Gem Mint"
+        },
+        "gradingCompany": "PSA",
+        "grade": "10 Gem Mint",
+        "fmvPriceInUsd": "51045",
+        "frontWithoutStandImageUrl": "https://cdn.renaiss.xyz/cards/105213752800124838738142318782550687414785992633220864119453208310739833422926/front.png"
+      }
+    },
+    {
+      "tokenId": "97889483425184034577892620702722354035276546848383681447916690031829631018227",
+      "collectible": null
+    }
+  ],
+  "favoritedSBTs": [
+    {
+      "id": 1,
+      "title": "Genesis Collector",
+      "description": "Awarded to early Renaiss collectors.",
+      "imageUrl": "https://cdn.renaiss.xyz/sbts/genesis.png"
+    }
+  ]
+}

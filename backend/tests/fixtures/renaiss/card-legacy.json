@@ -1,0 +1,16 @@
+{
+  "tokenId": "9999999999",
+  "name": "Legacy shape card",
+  "setName": "Base Set",
+  "cardNumber": "004",
+  "imageUrl": "https://cdn.renaiss.xyz/legacy/9999999999.png",
+  "gradingCompany": "BGS",
+  "grade": "9.5",
+  "serial": "BGS0000042",
+  "attributes": [
+    { "trait_type": "Grading Company", "value": "BGS" },
+    { "trait_type": "Grade", "value": "9.5" },
+    { "trait_type": "Serial", "value": "BGS0000042" }
+  ],
+  "fmvPriceInUSD": "12345"
+}

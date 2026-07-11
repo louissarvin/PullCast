@@ -1,0 +1,23 @@
+{
+  "description": "Synthetic CheckoutSuccess log encoded with the verified ABI. Round-trips through Interface.parseLog with the ABI at src/lib/ethers/abi/tvm.json. topic0 matches keccak256('CheckoutSuccess(address,bytes32,bytes32,uint256)').",
+  "expected": {
+    "buyer": "0xabcdef0123456789abcdef0123456789abcdef01",
+    "packId": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+    "checkoutMessageHash": "0xb2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2",
+    "pricePaidUsdc": "12345678000000000000",
+    "pricePaidFormatted": "12.345678"
+  },
+  "log": {
+    "address": "0x9215503e1e14ce0a16dad63d144687ba79485bd7",
+    "blockNumber": 12345678,
+    "transactionHash": "0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+    "logIndex": 2,
+    "topics": [
+      "0xd505514c5f9bb134a66621a7fd46a679442a1a0e45f5ad5dff0724e4b4588fed",
+      "0x000000000000000000000000abcdef0123456789abcdef0123456789abcdef01",
+      "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+      "0xb2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2"
+    ],
+    "data": "0x000000000000000000000000000000000000000000000000ab54a8bb155ae000"
+  }
+}

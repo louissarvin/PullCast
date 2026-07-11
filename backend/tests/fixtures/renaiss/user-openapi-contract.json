@@ -1,0 +1,222 @@
+{
+  "get": {
+    "tags": [
+      "Users"
+    ],
+    "summary": "Get public user profile",
+    "description": "Returns public user profile with favorited collectibles and SBT badges.",
+    "parameters": [
+      {
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "required": true,
+        "name": "id",
+        "in": "path"
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "username": {
+                  "type": "string"
+                },
+                "avatarUrl": {
+                  "type": "string"
+                },
+                "favoritedCollectibles": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "tokenId": {
+                        "type": "string",
+                        "pattern": "^d+$"
+                      },
+                      "collectible": {
+                        "type": "object",
+                        "nullable": true,
+                        "properties": {
+                          "item": {
+                            "type": "object",
+                            "properties": {
+                              "setName": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "year": {
+                                "type": "number"
+                              },
+                              "cardNumber": {
+                                "type": "string"
+                              },
+                              "gradingCompany": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "grade": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "setName",
+                              "name",
+                              "year",
+                              "cardNumber",
+                              "gradingCompany",
+                              "grade"
+                            ]
+                          },
+                          "gradingCompany": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "grade": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "fmvPriceInUsd": {
+                            "type": "string",
+                            "nullable": true,
+                            "pattern": "^d+$"
+                          },
+                          "frontWithoutStandImageUrl": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "item",
+                          "gradingCompany",
+                          "grade",
+                          "fmvPriceInUsd",
+                          "frontWithoutStandImageUrl"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "tokenId",
+                      "collectible"
+                    ]
+                  }
+                },
+                "favoritedSBTs": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "number"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "imageUrl": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "description",
+                      "imageUrl"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "username",
+                "avatarUrl",
+                "favoritedCollectibles",
+                "favoritedSBTs"
+              ]
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Bad request - invalid parameters",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "error",
+                "code"
+              ]
+            }
+          }
+        }
+      },
+      "404": {
+        "description": "User not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "error",
+                "code"
+              ]
+            }
+          }
+        }
+      },
+      "500": {
+        "description": "Internal server error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "error",
+                "code"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

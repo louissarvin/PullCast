@@ -1,0 +1,25 @@
+[
+  {
+    "type": "function",
+    "name": "totalSupply",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "type": "event",
+    "name": "TradeExecutedV2",
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "bidder", "type": "address" },
+      { "indexed": true, "internalType": "address", "name": "asker", "type": "address" },
+      { "indexed": true, "internalType": "uint256", "name": "nftTokenId", "type": "uint256" },
+      { "indexed": false, "internalType": "address", "name": "erc20Token", "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" },
+      { "indexed": false, "internalType": "bytes", "name": "tradeSignature", "type": "bytes" },
+      { "indexed": false, "internalType": "uint256", "name": "feeAccrued", "type": "uint256" },
+      { "indexed": false, "internalType": "bytes32", "name": "bidDigest", "type": "bytes32" },
+      { "indexed": false, "internalType": "bytes32", "name": "askId", "type": "bytes32" }
+    ]
+  }
+]
