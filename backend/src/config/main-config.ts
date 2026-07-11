@@ -16,26 +16,35 @@ const requiredEnvVars: string[] = [
   'GROQ_API_KEY',
 ];
 
-for (const envVar of requiredEnvVars) {
-  if (!process.env[envVar]) {
-    // D11: backwards-compat migration guard. If the operator still has the old
-    // ANTHROPIC_API_KEY set but has not migrated to GROQ_API_KEY, refuse to
-    // boot with a clear deprecation message. We do NOT silently fall back —
-    // the underlying provider is different and the caller must explicitly
-    // acknowledge the swap.
-    if (envVar === 'GROQ_API_KEY' && typeof process.env.ANTHROPIC_API_KEY === 'string' && process.env.ANTHROPIC_API_KEY.length > 0) {
-      console.error(
-        '[config] DEPRECATED: ANTHROPIC_API_KEY is set but GROQ_API_KEY is missing. ' +
+// Log which required env vars are missing (if any) BEFORE bailing out. This
+// runs at module load time so it happens before Fastify or any worker boots.
+// Use synchronous writes to stderr so the message flushes before process.exit
+// in containerized environments where stdio buffering can eat error output.
+const missing: string[] = requiredEnvVars.filter((v) => !process.env[v]);
+if (missing.length > 0) {
+  // D11: backwards-compat migration guard. If the operator still has the old
+  // ANTHROPIC_API_KEY set but has not migrated to GROQ_API_KEY, refuse to
+  // boot with a clear deprecation message.
+  if (
+    missing.includes('GROQ_API_KEY') &&
+    typeof process.env.ANTHROPIC_API_KEY === 'string' &&
+    process.env.ANTHROPIC_API_KEY.length > 0
+  ) {
+    process.stderr.write(
+      '[config] DEPRECATED: ANTHROPIC_API_KEY is set but GROQ_API_KEY is missing. ' +
         'The AI provider has been swapped from Anthropic to Groq. ' +
         'Set GROQ_API_KEY (get one at https://console.groq.com/keys) and remove ANTHROPIC_API_KEY. ' +
-        'Refusing to boot.'
-      );
-      process.exit(1);
-    }
-    console.error(`FATAL: Missing required environment variable: ${envVar}`);
+        'Refusing to boot.\n'
+    );
     process.exit(1);
   }
+  process.stderr.write(
+    `FATAL: Missing required environment variables: ${missing.join(', ')}\n` +
+      `Set them via 'railway variables --set KEY=value' and redeploy.\n`
+  );
+  process.exit(1);
 }
+process.stderr.write('[boot] required env vars present\n');
 
 // ---------------------------------------------------------------------------
 // App

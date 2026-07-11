@@ -5,7 +5,7 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "echo '>>> STAGE 1: prisma db push' && bunx prisma db push --config prisma/prisma.config.ts --accept-data-loss; echo '>>> STAGE 2: exec bun index.ts (PID 1)'; exec bun index.ts",
+    "startCommand": "bun index.ts",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 180,
     "restartPolicyType": "ON_FAILURE",
