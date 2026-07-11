@@ -366,3 +366,4 @@ const handler = async (interaction: ChatInputCommandInteraction): Promise<void> 
 };
 
 export const leaderboardCommand: Command = { data, handler };
+
