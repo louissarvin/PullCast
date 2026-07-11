@@ -367,3 +367,4 @@ function IndexCardPage() {
     </main>
   )
 }
+
