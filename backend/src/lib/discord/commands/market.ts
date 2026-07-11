@@ -324,3 +324,4 @@ const handler = async (interaction: ChatInputCommandInteraction): Promise<void> 
 };
 
 export const marketCommand: Command = { data, handler };
+
