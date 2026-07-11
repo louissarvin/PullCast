@@ -363,3 +363,4 @@ export const reportCommand: Command = {
     { prefix: REPORT_MODAL_PREFIX, handler: handleModalSubmit },
   ],
 };
+
